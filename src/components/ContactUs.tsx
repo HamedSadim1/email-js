@@ -1,160 +1,165 @@
-import React, { useRef } from "react";
-import emailjs from "@emailjs/browser";
-import { Formik, Form, Field, useField } from "formik";
-import * as Yup from "yup";
-import { Button, Modal } from "react-bootstrap";
+import { ErrorMessage, Field, Form, Formik } from "formik";
+import { useState } from "react";
+import { EmailData } from "../types";
+import { ContactSchema, initialFormValues } from "../utils/constants";
+import { sendEmail } from "../utils/emailService";
 
-//! This is the schema for the form validation using Yup and Formik
-const ContactUsSchema = Yup.object().shape({
-  name: Yup.string().min(2, "Too short").required("Required"),
-  email: Yup.string().email("Invalid email").required("Required"),
-  message: Yup.string().min(10, "Too short").required("Required"),
-});
+const ContactUs = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export const ContactUs = () => {
-  //! This is the ref for the form element
-  const form = useRef<HTMLFormElement>(null);
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  const toggleModal = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const sendEmail = () => {
-    // emailjs
-    //   .sendForm(
-    //     "service_sn8amlj",
-    //     "template_t0lbwq8",
-    //     form.current !== null ? form.current : "",
-    //     "xakGmNEoX8_C9Dy7v"
-    //   )
-    //   .then(
-    //     (result) => {
-    //       console.log(result.text);
-    //     },
-    //     (error) => {
-    //       console.log(error.text);
-    //     }
-    //   );
-    console.log("sendmail");
+  const sendEmailHandler = async (
+    values: EmailData,
+    { resetForm }: { resetForm: () => void }
+  ) => {
+    setIsSubmitting(true);
+    try {
+      await sendEmail(values);
+      setIsModalOpen(true);
+      resetForm();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Er is een fout opgetreden bij het verzenden van het bericht. Probeer het opnieuw."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="container">
-      {/* <form ref={form} onSubmit={sendEmail}>
-        <label>Name</label>
-        <input type="text" name="user_name" />
-        <label>Email</label>
-        <input type="email" name="user_email" />
-        <label>Message</label>
-        <textarea name="message" />
-        <input type="submit" value="Send" />
-      </form> */}
+    <section id="contact" className="glass-card p-8 max-w-2xl mx-auto">
+      <h3 className="text-3xl font-bold text-center text-white mb-6">
+        Stuur ons een bericht
+      </h3>
+
       <Formik
-        initialValues={{
-          name: "",
-          email: "",
-          message: "",
-        }}
-        validationSchema={ContactUsSchema}
-        onSubmit={(values) => {}}
+        initialValues={initialFormValues}
+        validationSchema={ContactSchema}
+        onSubmit={sendEmailHandler}
       >
-        {({ errors, touched,handleReset }) => (
-          <div className="mb-4 ms-5 me-5">
-            <h2 className="h1-responsive font-weight-bold text-center my-4">
-              Contact us
-            </h2>
-            <p className="text-center w-responsive mx-auto mb-5">
-              Do you have any questions? Please do not hesitate to contact me.
-            </p>
-            <Form ref={form} onSubmit={sendEmail}>
-              <div className="row">
-                <div className="col-md-6">
-                  <label htmlFor="name" className="fw-bolder mb-1">
-                    Name
-                  </label>
-                  <div className="md-form mb-0">
-                    <Field
-                      type="text"
-                      id="name"
-                      name="name"
-                      className="form-control"
-                    />
+        {({ isValid, dirty }) => (
+          <Form className="space-y-6">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-white/90 mb-2"
+              >
+                Naam
+              </label>
+              <Field
+                type="text"
+                id="name"
+                name="name"
+                className="input-field"
+                placeholder="Uw naam"
+              />
+              <ErrorMessage
+                name="name"
+                component="div"
+                className="text-red-300 text-sm mt-1"
+              />
+            </div>
 
-                    {errors.name && touched.name ? (
-                      <div className="text-danger">{errors.name}</div>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <label htmlFor="email" className="fw-bolder mb-1">
-                    Your email
-                  </label>
-                  <div className="md-form mb-0">
-                    <Field
-                      type="text"
-                      id="email"
-                      name="email"
-                      className="form-control"
-                    />
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-white/90 mb-2"
+              >
+                E-mail
+              </label>
+              <Field
+                type="email"
+                id="email"
+                name="email"
+                className="input-field"
+                placeholder="uw.email@voorbeeld.com"
+              />
+              <ErrorMessage
+                name="email"
+                component="div"
+                className="text-red-300 text-sm mt-1"
+              />
+            </div>
 
-                    {errors.email && touched.email ? (
-                      <div className="text-danger">{errors.email}</div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <div className="row">
-                <div className="col-md-12">
-                  <label htmlFor="message" className="fw-bolder mt-4 mb-3">
-                    Your message
-                  </label>
-                  <div className="md-form mb-0">
-                    <Field
-                      as="textarea"
-                      id="message"
-                      name="message"
-                      rows={6}
-                      className="form-control md-textarea"
-                    />
+            <div>
+              <label
+                htmlFor="message"
+                className="block text-sm font-medium text-white/90 mb-2"
+              >
+                Bericht
+              </label>
+              <Field
+                as="textarea"
+                id="message"
+                name="message"
+                rows={6}
+                className="input-field resize-none"
+                placeholder="Typ hier uw bericht..."
+              />
+              <ErrorMessage
+                name="message"
+                component="div"
+                className="text-red-500 text-sm mt-1"
+              />
+            </div>
 
-                    {errors.message && touched.message ? (
-                      <div className="text-danger mt-2">{errors.message}</div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <div className="text-center text-md-left ">
-                <button
-                  className="btn btn-outline-dark btn-rounded mt-4"
-                  disabled={
-                    errors.email || errors.message || errors.name ? true : false
-                  }
-                  onClick={toggleModal}
-                >
-                  Send
-                </button>
-              </div>
-            </Form>
-          </div>
+            <div className="text-center">
+              <button
+                type="submit"
+                disabled={!isValid || !dirty || isSubmitting}
+                className={`btn-primary w-full py-3 px-6 text-lg font-semibold rounded-lg transition duration-300 ${
+                  !isValid || !dirty || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-blue-700"
+                }`}
+              >
+                {isSubmitting ? "Verzenden..." : "Verstuur bericht"}
+              </button>
+            </div>
+          </Form>
         )}
       </Formik>
-      <div className="container m-5">
-        <Modal show={isOpen} onHide={toggleModal}>
-          <Modal.Header closeButton>
-            <Modal.Title>Your message has been send</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <p>Thank you for you message</p>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={toggleModal}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </div>
-    </div>
+
+      {/* Success Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Bericht verzonden!
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Bedankt voor uw bericht. We nemen zo snel mogelijk contact met u
+                op.
+              </p>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="btn-primary w-full"
+              >
+                Sluiten
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 
